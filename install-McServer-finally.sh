@@ -125,6 +125,7 @@ fi
 Install() {
 echo -n "Installing screeen..."
 if ! [ -x "$(command -v screen)" ];then
+    apt update
 	apt-get -y install screen &>/dev/null
 fi
 echo "done"
@@ -197,6 +198,7 @@ echo "This is 1.7.10-"
 
 
 clear
+apt update
 if ! [ -x "$(command -v java)" ];then
 	apt-get -y install openjdk-11-jdk &>/dev/null
 fi
@@ -298,5 +300,6 @@ do
 done
 cd $ServerWorkingDirectory
 sed -i "s/25565/$port/" server.properties
+echo -e "\n"
 echo "=============Ok=============" 
 echo -e "\n"
