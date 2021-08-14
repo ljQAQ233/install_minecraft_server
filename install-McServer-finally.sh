@@ -200,13 +200,11 @@ echo "This is 1.7.10-"
 clear
 apt update
 if ! [ -x "$(command -v java)" ];then
-	apt-get -y install openjdk-11-jdk &>/dev/null
+	apt-get -y install default-jdk &>/dev/null
 fi
 apt-get -y install iptables
 
-#	apt-get -y install default-jdk &>/dev/null
-#
-#	apt-get -y install openjdk-11-jre &>/dev/null
+#	apt-get -y install openjdk-11-jdk &>/dev/null
 #
 #	apt-get -y install openjdk-16-jdk &>/dev/null
 
