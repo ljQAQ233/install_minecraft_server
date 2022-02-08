@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 #Author:Maouai233(BiliBili)
 #version:2.0
