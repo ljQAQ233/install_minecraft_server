@@ -301,7 +301,7 @@ Configure(){
 	#	apt-get -y install openjdk-16-jdk &>/dev/null
 
 	echo -n "Change Owner..."
-	chown -v -R ./*
+#	chown -v -R ./*
 	echo "done"
 
 	for ((;;))
