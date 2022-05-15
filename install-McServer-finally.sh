@@ -214,7 +214,7 @@ Install() {
 	echo "done"
 	echo -n "Configuring server..."
 	screen -dmS ConfigTerm bash ./config.sh
-	for ((i=0;i<20;i=i+1))
+	for ((i=0;$i<20;i=`expr $i + 1`))
 	do
 		echo -n "."
 		sleep 1
@@ -223,7 +223,7 @@ Install() {
 	if ! [[ -d "logs" ]];then
 		for ((;;))
 		do
-			echo -n "."
+			echo -n "_"
 			if [[ $(cat `ls|grep -v server.jar|grep -v server.pro|grep log` |grep help|grep "?"|grep INFO|wc -l) -gt 0 ]];then
 	        		NeverConfigAgain=1
 				processMcSERVER=$(ps -fe|grep server.jar|grep java|grep -v grep|wc -l)
