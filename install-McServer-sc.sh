@@ -1,11 +1,40 @@
 #!/usr/bin/env bash
 
 #Author:Maouai233
-#version:2.2-build-20220604
+#version:2.3-debug-20220605
 #Created Time:2022/06/04
 #script Description:Install a server of Minecraft,there are more surprises in this script!Script may have some bugs,but to use is no problem.
 
+function JarCheck() {
+	echo "--------------------------------"
+	echo -n "创建检验脚本..."
+	echo "Return=\`java -jar server.jar 2>&1\`
+		if [[ `echo "$Return" |grep Error|wc -l` -gt 0  ]];then
+			echo "Java 返回：\$Return" > Error
+			echo "Jar包可能已损坏" >> Error
+		fi
+		exit" > Check.sh
+	echo "完成"
+	echo -n "开始校验..."
+	screen -dmS CheckJarTerm bash ./Check.sh
+	sleep 2
+	if [[ -f Error ]];then
+		echo "错误"
+		return 1
+	else
+		processNum=$(ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}')
+		if [[ `echo $processNum |wc -l` -gt 0 ]];then
+			kill -9 $processNum 2> /dev/null
+		fi
+	fi
+
+	JarGood=0
+	echo "完成"
+	return 0
+}
+
 ScriptInit() {
+	echo "--------------------------------"
 	PortOccupancy=$(lsof -i:25565|grep 25565|wc -l)
 	if [ `expr $PortOccupancy + 0` -eq 1 ];then
 		echo "25565端口以被其他进程占用！"
@@ -27,14 +56,25 @@ ScriptInit() {
 	fi
 
 	Status=0
+	JarGood=1
 }
 
 ScriptClose(){
+	if [[ -f Error ]];then
+		rm -rf Error
+	fi
+	if [[ -f Check.sh ]];then
+		rm -rf Check.sh
+	fi
+	if [[ -f config.sh ]];then
+		rm -rf config.sh
+	fi
 	rm -rf ~/tmp-mcserver
 }
 
 SoftwareInstall()
 {
+	echo "--------------------------------"
 	echo -n "更新软件列表..."
 #	apt update &> /dev/null
 	echo "完成"
@@ -47,7 +87,7 @@ SoftwareInstall()
 		echo "Wget 已安装"
 	fi
 
-	if ! command -v java;then
+	if ! command -v java > /dev/null;then
 		read -p  "将会安装Openjdk-17，键入任意键继续" tmp
 		echo -n "安装 Java..."
 		apt-get -y install openjdk-17-jdk > /dev/null
@@ -207,7 +247,16 @@ McServerChooseAndDownload(){
 
 #################################################################
 
-Install() {
+function Install() {
+	if [[ $JarGood != 0 ]];then
+		if ! JarCheck;then
+			Status=1
+			return 1
+		else
+			JarGood=0
+		fi
+	fi
+
 	echo -n "创建服务器配置脚本..."
 	
 	echo "java -jar ./server.jar" > config.sh
@@ -231,7 +280,7 @@ Install() {
 				processMcSERVER=$(ps -fe|grep server.jar|grep java|grep -v grep|wc -l)
 	       			if [[ $processMcSERVER -gt 0 ]];then
 					processNum=$(ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}')
-					kill -9 $processNum > /dev/null
+					kill -9 $processNum 2> /dev/null
 					break
 				fi
 			fi
@@ -295,7 +344,7 @@ MojangServerEula(){
 
 #################################################################
 
-Configure(){
+Configure() {
 	#apt update
 
 	#	apt-get -y install openjdk-11-jdk &>/dev/null
@@ -360,7 +409,7 @@ Configure(){
 	echo -n "创建启动脚本..."
 
 	echo "cd ${ServerWorkingDirectory}" > $ShFDir/start.sh
-	echo "iptables -I INPUT -p tcp --dport ${port} -j ACCEPT > /dev/null" >> $ShFDir/start.sh
+	echo "iptables -I INPUT -p tcp --dport ${port} -j ACCEPT 2> /dev/null" >> $ShFDir/start.sh
 	echo -e "screen java -Xms${MemoryJvmXms}m -Xmx${MemoryJvmXmx}m -jar ./server.jar" >> $ShFDir/start.sh
 
 	cp $ShFDir/start.sh ~/tmp-mcserver/
@@ -374,7 +423,7 @@ Configure(){
 		do
 			echo -n "."
 			if [[ `cat logs/latest.log|grep help|grep ?|grep INFO|wc -l` -gt 0 ]];then
-				kill -9 `ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}'` &> /dev/null
+				kill -9 `ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}'` 2> /dev/null
 				break
 			fi
 
@@ -387,15 +436,17 @@ Configure(){
 	fi
 	cd $ServerWorkingDirectory
 	sed -i "s/25565/$port/" server.properties
-	echo -e "\n"
-	echo "-----------完成-----------" 
+	echo "完成" 
 	echo -e "\n"
 
 }
 
+clear
 ScriptInit
 SoftwareInstall
-echo $USER
+echo "--------------------------------"
+echo "用户：$USER"
+echo "--------------------------------"
 if [ -f "MCSerVeR_2b41/server.jar" ];then
 	if [[ -d "MCSerVeR_2b41/world" || -d "MCSerVeR_2b41/logs" ]];then
 		echo "在MCSerVeR_2b41已经有了一个服务器，请删除那些文件(不包括 server.jar) 或者 切换其他目录继续安装"
@@ -424,15 +475,15 @@ if [ -f "MCSerVeR_2b41/server.jar" ];then
 			Install
 			break
 		elif [ "$choose" = 'e' ];then
-			exit 0
+			Status=0
+			break
 		elif [ "$choose" = 'c' ];then
 			cd MCSerVeR_2b41
-			Return=`java -jar server.jar 2>&1`
-			if [[ `echo $Return|grep "Error"|wc -l` -gt 0 ]];then
-				echo -e "Java返回 ：$Return\n"
+			if ! JarCheck;then
 				Status=1
 				break
 			else
+				JarGood=0
 				ServerWorkingDirectory=$(pwd)
 				Install
 				break
@@ -447,10 +498,18 @@ else
 	Install
 fi
 
+echo "--------------------------------"
 echo "如果您不能连接到您搭建的服务器 或者 iptables无法使用,请使用 \"apt remove iptables\" 卸载iptables以暴力解决QwQ。并且您的服务器必须开启MC服务器所用端口。"
-echo -e "\n"
 echo -e "如果有Bug，您可以发邮件给我\n我的邮箱:Maouai233@outlook.com"
+
+
+if [[ -f "Error" ]];then
+	echo "--------------错误--------------"
+	cat Error
+	echo "--------------错误--------------"
+fi
+ScriptClose
 
 exit $Status
 
-ScriptClose
+

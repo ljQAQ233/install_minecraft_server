@@ -1,11 +1,39 @@
 #!/usr/bin/env bash
 
 #Author:Maouai233
-#version:2.2-build-20220604
+#version:2.3-debug-20220605
 #Created Time:2022/06/04
 #script Description:Install a server of Minecraft,there are more surprises in this script!Script may have some bugs,but to use is no problem.
 
+function JarCheck() {
+	echo "--------------------------------"
+	echo -n "Creating Checking Script..."
+	echo "Return=\`java -jar server.jar 2>&1\`
+		if [[ `echo "$Return" |grep Error|wc -l` -gt 0  ]];then
+			echo "Java Returned：\$Return" > Error
+			echo "Jar got Bad" >> Error
+		fi
+		exit" > Check.sh
+	echo "done"
+	echo -n "Start Checking..."
+	screen -dmS CheckJarTerm bash ./Check.sh
+	sleep 2
+	if [[ -f Error ]];then
+		echo "Error"
+		return 1
+	else
+		processNum=$(ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}')
+		if [[ `echo $processNum |wc -l` -gt 0 ]];then
+			kill -9 $processNum 2> /dev/null
+		fi
+	fi
+
+	echo "done"
+	return 0
+}
+
 ScriptInit(){
+	echo "--------------------------------"
 	PortOccupancy=$(lsof -i:25565|grep 25565|wc -l)
 	if [ `expr $PortOccupancy + 0` -eq 1 ];then
 		echo "There is a process that takes up 25565 ports!"
@@ -27,14 +55,25 @@ ScriptInit(){
 	fi
 
 	Status=0
+	JarGood=1
 }
 
 ScriptClose(){
+	if [[ -f Error ]];then
+		rm -rf Error
+	fi
+	if [[ -f Check.sh ]];then
+		rm -rf Check.sh
+	fi
+	if [[ -f config.sh ]];then
+		rm -rf config.sh
+	fi
 	rm -rf ~/tmp-mcserver
 }
 
 SoftwareInstall()
 {
+	echo "--------------------------------"
 	echo -n "Update software list..."
 #	apt update &> /dev/null
 	echo "done"
@@ -207,7 +246,16 @@ McServerChooseAndDownload(){
 
 #################################################################
 
-Install() {
+function Install() {
+	if [[ $JarGood != 0 ]];then
+		if ! JarCheck;then
+			Status=1
+			return 1
+		else
+			JarGood=0
+		fi
+	fi
+
 	echo -n "Creating the Configuring Script..."
 	
 	echo "java -jar ./server.jar" > config.sh
@@ -236,7 +284,7 @@ Install() {
 				processMcSERVER=$(ps -fe|grep server.jar|grep java|grep -v grep|wc -l)
 	       			if [[ $processMcSERVER -gt 0 ]];then
 					processNum=$(ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}')
-					kill -9 $processNum > /dev/null
+					kill -9 $processNum 2> /dev/null
 					break
 				fi
 			fi
@@ -365,7 +413,7 @@ Configure(){
 	echo -n "Creating startup script..."
 
 	echo "cd ${ServerWorkingDirectory}" > $ShFDir/start.sh
-	echo "iptables -I INPUT -p tcp --dport ${port} -j ACCEPT > /dev/null" >> $ShFDir/start.sh
+	echo "iptables -I INPUT -p tcp --dport ${port} -j ACCEPT 2> /dev/null" >> $ShFDir/start.sh
 	echo -e "screen java -Xms${MemoryJvmXms}m -Xmx${MemoryJvmXmx}m -jar ./server.jar" >> $ShFDir/start.sh
 
 	cp $ShFDir/start.sh ~/tmp-mcserver/
@@ -379,7 +427,7 @@ Configure(){
 		do
 			echo -n "."
 			if [[ `cat logs/latest.log|grep help|grep ?|grep INFO|wc -l` -gt 0 ]];then
-				kill -9 `ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}'` &> /dev/null
+				kill -9 `ps -fe|grep server.jar|grep java|grep -v grep|awk '{print $2}'` 2> /dev/null
 				break
 			fi
 
@@ -392,15 +440,17 @@ Configure(){
 	fi
 	cd $ServerWorkingDirectory
 	sed -i "s/25565/$port/" server.properties
-	echo -e "\n"
-	echo "-----------DONE-----------" 
+	echo "done"
 	echo -e "\n"
 
 }
 
+clear
 ScriptInit
 SoftwareInstall
-echo $USER
+echo "--------------------------------"
+echo "User : $USER"
+echo "--------------------------------"
 if [ -f "MCSerVeR_2b41/server.jar" ];then
 	if [[ -d "MCSerVeR_2b41/world" || -d "MCSerVeR_2b41/logs" ]];then
 		echo "There is a Server in the Directory,please REMOVE that(except server.jar) or CHANGE directories"
@@ -429,15 +479,15 @@ if [ -f "MCSerVeR_2b41/server.jar" ];then
 			Install
 			break
 		elif [ "$choose" = 'e' ];then
-			exit 0
+			Status=0
+			break
 		elif [ "$choose" = 'c' ];then
 			cd MCSerVeR_2b41
-			Return=`java -jar server.jar 2>&1`
-			if [[ `echo $Return|grep "Error"|wc -l` -gt 0 ]];then
-				echo -e "Java returned : $Return\n"
+			if ! JarCheck;then
 				Status=1
 				break
 			else
+				JarGood=0
 				ServerWorkingDirectory=$(pwd)
 				Install
 				break
@@ -452,10 +502,18 @@ else
 	Install
 fi
 
+echo "--------------------------------"
 echo "If you can not connect to your Server or Iptables can't use,please use \"apt remove iptables\"to remove iptables.And your Machine must Open the port of MC Server."
-echo -e "\n"
 echo -e "If there are some bugs,please send to me.\nMy email:Maouai233@outlook.com"
+
+
+if [[ -f "Error" ]];then
+	echo "--------------ERROR-------------"
+	cat Error
+	echo "--------------ERROR--------------"
+fi
+ScriptClose
 
 exit $Status
 
-ScriptClose
+
