@@ -26,13 +26,13 @@ ScriptClose() {
 }
 
 ScriptExitF() {
-	echo -e "\033[31m\n[ Script Exit - Errors ]\n\033[0m"
+	echo -e "\033[31m\n[ 脚本紧急退出 - 错误 ]\n\033[0m"
 	busybox cat $1
 	ScriptClose ErrorExit
 }
 
 ScriptExitFMsg() {
-	echo -e "\033[31m\n[ Script Exit - Errors ]\n\033[0m"
+	echo -e "\033[31m\n[ 脚本紧急退出 - 错误 ]\n\033[0m"
 	echo $1
 	ScriptClose ErrorExit
 }
@@ -75,49 +75,49 @@ GetTime() {
 }
 
 CheckerInstaller() {
-	echo -n "Updating the Software list..."
+	echo -n "更新软件列表..."
 	#	sudo apt update >/tmp/McServer/Apt_Update 2>&1
 	if [[ $? == 0 ]]; then
-		PrintGreen "done"
+		PrintGreen "完成"
 	else
-		PrintRed "Error"
+		PrintRed "错误"
 		ScriptExitF /tmp/McServer/Apt_Update
 	fi
 
 	if [[ ${_AXEL} == 1 ]]; then
-		echo -n "Installing Axel..."
+		echo -n "安装Axel..."
 		sudo apt-get install axel -y >/tmp/McServer/AxelInstall 2>&1
 		if [[ $? != 0 ]]; then
-			PrintRed "Error"
+			PrintRed "失败"
 			ScriptExitF /tmp/McServer/AxelInstall
 		fi
 	fi
 
 	if [[ ${_BUSYBOX} == 1 ]]; then
-		echo -n "Installing busybox..."
+		echo -n "安装busybox..."
 		sudo apt-get install busybox -y >/tmp/McServer/BusyboxInstall 2>&1
 		if [[ $? != 0 ]]; then
-			PrintRed "Error"
+			PrintRed "失败"
 			exit 1
 		fi
 	fi
 }
 
 function JavaGetBinaryPath {
-	echo -n "Get Java Binary Path..."
+	echo -n "获取Java可执行程序路径..."
 	JAVA_BINARY_PATH=$(update-alternatives --list java | grep ${JAVA_INSTALL_VERSION} 2>&1)
 	if [[ $? != 0 ]]; then
 		echo ${JAVA_BINARY_PATH} >/tmp/McServer/JavaGetBinaryPathError
 		ScriptExitF /tmp/McServer/JavaGetBinaryPathError
 	fi
-	PrintGreen "done"
-	echo -n "Java Binary Path..."
+	PrintGreen "完成"
+	echo -n "Java可执行程序路径..."
 	PrintBlue "${JAVA_BINARY_PATH}"
 }
 
 function JavaInstaller {
 	if [[ ${JAVA_VERSION} == ${JAVA_INSTALL_VERSION} ]]; then
-		echo "The Java will use has Installed Already."
+		echo "所需的Java已安装."
 		return 0
 	fi
 
@@ -133,90 +133,86 @@ function JavaInstaller {
 
 Checker() {
 	#	mkfifo /tmp/Sign.in /tmp/Sign.out
-	echo "User:${USER}"
+	echo "用户:${USER}"
 	echo "Dir :$(pwd)"
 	if [[ $(pwd) == '/' ]]; then
-		ScriptExitFMsg "Can't Execute in /,Becase of Danger."
+		ScriptExitFMsg "不可在根目录 / 下执行."
 	fi
 
 	SCRIPT_HOME=$(pwd)
-	echo "Script Home...${SCRIPT_HOME}"
+	echo "脚本目录...${SCRIPT_HOME}"
 
-	echo -n "Loading Modules..."
+	echo -n "加载模块..."
 	source ./output.sh
 	source ./checkPkgVersion.sh
-	PrintGreen "done"
+	PrintGreen "完成"
 
-	echo "Checking Softwares..."
+	echo "检测软件..."
 	echo -n "Java..."
 	if JavaCheck >/dev/null 2>&1; then
-		PrintGreen "yes"
+		PrintGreen yes
 		JavaGetVersion
-		echo -n "Java Version..."
+		echo -n "Java版本..."
 		PrintGreen "${JAVA_VERSION}"
 	else
-		PrintRed "no"
+		PrintRed no
 		_JAVA=1
 	fi
 
 	echo -n "Axel..."
 	if AxelCheck >/dev/null 2>&1; then
-		PrintGreen "yes"
+		PrintGreen yes
 	else
-		PrintRed "no"
+		PrintRed no
 		_AXEL=1
 	fi
 
 	echo -n "Busybox..."
 	if BusyboxCheck; then
-		PrintGreen "yes"
+		PrintGreen yes
 	else
-		PrintRed "no"
+		PrintRed no
 		_BUSYBOX=1
 	fi
 
 	echo -n "Screen..."
 	if ScreenCheck >/dev/null 2>&1; then
-		PrintGreen "yes"
+		PrintGreen yes
 	else
-		PrintRed "no"
+		PrintRed no
 		_SCREEN=1
 	fi
 
-	echo -n "Iptables[Check Only]..."
+	echo -n "Iptables[仅检查]..."
 	if IptablesCheck; then
-		PrintGreen "yes"
+		PrintGreen yes
 	else
-		PrintRed "no"
+		PrintRed no
 		_IPTABLES=1
 	fi
 
-	echo -n "Creating the Directory Tmp..."
-	if [[ ! -d "/tmp/McServer" ]]; then
-		mkdir -p /tmp/McServer
-		PrintGreen "done"
-	else
-		rm -rf /tmp/McServer/*
-		PrintGreen "the directory has Created Already"
-	fi
-
-	echo -n "Creating Server Directory..."
+	echo -n "创建服务器目录..."
 	if [[ ! -d "McServer" ]]; then
-		mkdir McServer >/tmp/McServer/EnvironmentError
-		if [[ $? != 0 ]]; then
-			echo "Permeission Denied" >>/tmp/McServer/EnvironmentError
-			ScriptExitF /tmp/McServer/EnvironmentError
-		fi
-		PrintGreen "done"
+		mkdir McServer
+		PrintGreen "完成"
 	else
-		PrintGreen "the directory has Created Already"
+		PrintGreen "目录已存在"
 	fi
 	SERVER_WORKING_DIR=$(realpath ./McServer)
-	echo -n "Server Working Home..."
+	echo -n "服务器工作目录..."
 	PrintGreen "${SERVER_WORKING_DIR}"
 
-	echo -n "Time..."
-	PrintGreen "$(GetTime)"
+	echo -n "创建Tmp目录..."
+	if [[ ! -d "/tmp/McServer" ]]; then
+		mkdir -p /tmp/McServer
+		PrintGreen "完成"
+	else
+		rm -rf /tmp/McServer/*
+		PrintGreen "目录已存在"
+	fi
+
+	GetTime
+	echo "时间...${TIME}"
 
 	CheckerInstaller
 }
@@ -268,7 +264,7 @@ EOF
 }
 
 function JarRunTest {
-	echo -n "Making a Script for Checking the Jar of Minecraft Server..."
+	echo -n "创建检验Jar脚本..."
 	cat >Check.sh <<EOF
 #!/usr/bin/env bash
 SCRIPT_HOME=${SCRIPT_HOME}
@@ -302,18 +298,18 @@ if [[ \$(echo \${Return} | grep Error | wc -l) -gt 0  ]] || [[ \$? != 0 ]];then
 	elif ! checkStringNull "\$(echo \${Return} | grep -i eula)";then
 		echo "TRUE"
 	else
-		echo -e "Java Returned:\${Return}\nThe Jar is broken" > /tmp/McServer/Jar_Run_Test_Error
+		echo -e "Java 返回：\${Return}\nJar包可能已损坏" > /tmp/McServer/Jar_Run_Test_Error
     fi
 fi
 rm -rf ./eula.txt ./logs/* ./world_* ./*.yml *.json ./plugins
 exit
 EOF
-	PrintGreen "done"
-	echo -n "Start to Check the Jar File..."
+	PrintGreen "完成"
+	echo -n "开始校验Jar..."
 	screen -dmS JarCheckTerm bash ./Check.sh
 	sleep 6
 	if [[ -f "/tmp/McServer/Jar_Run_Test_Error" ]]; then
-		PrintRed "Error"
+		PrintRed "错误"
 		return 1
 	else
 		processNum=$(ps -fe | grep server.jar | grep java | grep -v "grep" | grep -v "CheckJarTerm" | awk '{print $2}')
@@ -321,7 +317,7 @@ EOF
 			kill -9 $processNum >/dev/null 2>&1
 		fi
 	fi
-	PrintGreen "done"
+	PrintGreen "完成"
 
 	return 0
 }
@@ -329,10 +325,10 @@ EOF
 McServerChoose() {
 	while true; do
 		echo "--------------------------------"
-		echo -e "1.18.2  1.18.1  1.18 \n1.17.1  1.17    1.16.5\n1.16.4  1.16.3  1.16.2\n1.16.1  1.15.2  1.15.1\n1.15    1.14.4  1.14.3\n1.14.2  1.14.1  1.14\n1.13.2  1.13.1  1.13\n1.12.2  1.12.1  1.12\n1.11.2  1.11.1  1.10.2\n1.10    1.9.4   1.9.2\n1.9     1.8.8   1.8.7\n1.8.6   1.8.5   1.8.4\n1.8.3   1.8     1.7.10\n1.7.9   1.7.8   1.7.5\n1.7.2   1.6.4   1.6.2\n1.5.2   1.5.1   1.4.7\n1.4.6\n Choose My Local Jar Pkg(r)"
+		echo -e "1.18.2  1.18.1  1.18 \n1.17.1  1.17    1.16.5\n1.16.4  1.16.3  1.16.2\n1.16.1  1.15.2  1.15.1\n1.15    1.14.4  1.14.3\n1.14.2  1.14.1  1.14\n1.13.2  1.13.1  1.13\n1.12.2  1.12.1  1.12\n1.11.2  1.11.1  1.10.2\n1.10    1.9.4   1.9.2\n1.9     1.8.8   1.8.7\n1.8.6   1.8.5   1.8.4\n1.8.3   1.8     1.7.10\n1.7.9   1.7.8   1.7.5\n1.7.2   1.6.4   1.6.2\n1.5.2   1.5.1   1.4.7\n1.4.6\n 选择本地的Jar安装(r)"
 		echo "--------------------------------"
 		local InputVersion
-		read -p "Enter the MC Server Version that You want to Install:" InputVersion
+		read -p "键入您想要安装的服务器版本:" InputVersion
 		case ${InputVersion} in
 		"1.18.2")
 			SERVER_JAR_PATH="http://download.getbukkit.org/spigot/spigot-1.18.2.jar"
@@ -586,16 +582,16 @@ McServerChoose() {
 			;;
 		'r')
 			if ! [[ -f McServer/server.jar ]]; then
-				echo "Please Move the Target Jar to the Directory - McServer,and Rename it to \"server.jar\"."
+				echo "请把Jar文件移入McServer目录，并重命名它为 \"server.jar\"。"
 				ScriptClose Normal
 			fi
 			;;
 		esac
 
 		if ! [[ -n ${InputVersion} ]]; then
-			echo "Please Enter!"
+			echo "您没有输入任何版本号！"
 		elif ! [[ -n ${SERVER_JAR_PATH} ]]; then
-			echo "The Version you Entered is Invalid."
+			echo "输入的版本号无效！"
 		else
 			break
 		fi
@@ -604,7 +600,7 @@ McServerChoose() {
 
 AxelDownload() {
 	echo "--------------"
-	echo "Start to Download Server Jar File With Axel ..."
+	echo "开始使用Axel下载服务端..."
 	axel -n 32 -o server.jar ${SERVER_JAR_PATH} 2>/tmp/McServer/AxelDownloadError
 	if [[ $? == 0 ]]; then
 		PrintGreen "--------------"
@@ -614,19 +610,19 @@ AxelDownload() {
 }
 
 Md5Check() {
-	echo -n "Checking File use Md5..."
+	echo -n "检测Md5..."
 	if [[ $(busybox md5sum server.jar | awk '{print $1}') != ${JAR_MD5} ]]; then
-		echo "Error in Md5,Maybe The File is Broken." >/tmp/McServer/Md5Error
+		echo "Md5值错误，可能是文件损坏." >/tmp/McServer/Md5Error
 		ScriptExitF /tmp/McServer/Md5Error
 	fi
-	PrintGreen "done"
+	PrintGreen "完成"
 }
 
 #################################################################
 #################################################################
 
 Configure() {
-	echo "Start to Configure by Yourself..."
+	echo "开始进行自定义配置..."
 
 	echo -e "\n"
 	echo "--------------"
@@ -646,13 +642,13 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Port Number of the Server | 1024-65535 | Num"
+		echo "请输入服务器端口号 | 1024-65535 | 数字"
 		read -p ">" SERVER_PORT
 		if checkStringClassContains 0-9 "${SERVER_PORT}"; then
 			SERVER_PORT=$(expr ${SERVER_PORT} + 0)
 			if [[ ${SERVER_PORT} -le 65535 ]] && [[ ${SERVER_PORT} -ge 1024 ]]; then
 				if lsof -i :${SERVER_PORT} >/dev/null 2>&1; then
-					PrintBlue "${SERVER_PORT} the Port has been taken [ PID: $(lsof -i :${SERVER_PORT} | awk 'NR==2 {print $2}') ]"
+					PrintBlue "${SERVER_PORT} 端口已被占用 [ PID: $(lsof -i :${SERVER_PORT} | awk 'NR==2 {print $2}') ]"
 					continue
 				fi
 
@@ -662,66 +658,66 @@ Configure() {
 
 				break
 			else
-				PrintBlue "Please Enter a Positive Integer from 1024 to 65535 as the Server Port!"
+				PrintBlue "请输入一个从1024到65535的数字作为服务器端口号！"
 			fi
 		else
-			PrintBlue "Please Enter a Positive Integer!"
+			PrintBlue "请输入数字！"
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Minimum Memory that Java(or Server) can use to Keep Server Running Successfully|Positive Integer"
+		echo "请输入分配给的服务器最小内存 | 正整数"
 		read -p ">" MemoryJvmXms
 		if [[ ${MemoryJvmXms} -gt 0 ]]; then
 			break
 		else
-			PrintBlue "Please Enter a Positive Integer!"
+			PrintBlue "请输入一个正整数！"
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Maximum Memory|Positive Integer"
+		echo "请输入服务器最大分配内存 | 正整数"
 		read -p ">" MemoryJvmXmx
 		if [[ ${MemoryJvmXms} -gt 0 ]]; then
 			if [[ ${MemoryJvmXms} -gt ${MemoryJvmXmx} ]]; then
-				PrintBlue "The Maximum Memory number Must be More than the Minimum Memory number,the Result you enter was so Strange! Σ(っ °Д °;)っ"
+				PrintBlue "你这分配的内存也太假了,小的数比大数都大 Σ(っ °Д °;)っ"
 				continue
 			fi
 			break
 		else
-			PrintBlue "Please Enter a Positive Integer!"
+			PrintBlue "请输入一个正整数！"
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Name of The Server you want|the Commoner,the few Bugs there will be|e.g. world"
+		echo "请输入服务器世界名称 | 不要太奇怪就好 Qaq | 例如:world"
 		read -p ">" LEVEL_NAME
 		if ! checkStringNull "${LEVEL_NAME}"; then
 			break
 		else
-			PrintBlue "The Name mustn't be NULL,Again Please...QwQ"
+			PrintBlue "认不出服务器目录就麻烦了..."
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the World Seed"
+		echo "请输入服务器世界种子"
 		read -p ">" WORLD_SEED
 		if [[ $(echo ${WORLD_SEED} | wc -l) -gt 0 ]]; then
 			#		if grep -E '[0-9a-zA-Z\+\-]' <<< "${WORLD_SEED}"; then
 			break
 		else
-			PrintBlue "Please Compelete it Correctly!"
-			# PrintBlue "Please Enter a Positive Integer"
+			PrintBlue "请输入!"
+			#			PrintBlue "请输入一个整数！"
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Class of the World|Normal-n|Flat-f|Large Biomes-l"
+		echo "请输入服务器世界地图类型 | 普通-n | 超平坦-f | 大型生物群系-l"
 		read -p ">" LevelType
 		if [[ ${LevelType} == 'n' ]]; then
 			LEVEL_TYPE="minecraft:normal"
@@ -737,7 +733,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Do you want to create a BonusChest when the World Creating |y / n|"
+		echo "是否在配置时生成奖励箱 |y / n|"
 		read -p ">" BonusChestYoN
 		if [[ ${BonusChestYoN} == 'y' ]]; then
 			CONFIG_JAVA_OPTION="${CONFIG_JAVA_OPTION} -bonusChest"
@@ -747,7 +743,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Default Server Game Mode|Survival-0|Creative-1|Adventure-2|Spectator-3|Hardcore-h"
+		echo "服务器默认游戏模式 | 生存-0 | 创造-1 | 冒险-2 | 旁观者-3 | 极限 - h"
 		read -p ">" GAMDMODE
 		if [[ ${GAMDMODE} == '0' ]] || [[ ${GAMDMODE} == '1' ]] || [[ ${GAMDMODE} == '2' ]] || [[ ${GAMDMODE} == '3' ]]; then
 			break
@@ -755,13 +751,13 @@ Configure() {
 			HARDCORE_MODE_ENABLE="true"
 			break
 		else
-			PrintBlue "Please Compelete it Successfully!"
+			PrintBlue "请输入！"
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Are Players Forced to Change them GameMode to the Default After Entering the Server? |y / n|"
+		echo "是否在玩家进入游戏后强制改为服务器默认游戏模式 |y / n|"
 		read -p ">" ForceGamemodeYoN
 		if [[ ${ForceGamemodeYoN} == 'y' ]]; then
 			FORCE_GAME_MODE="true"
@@ -774,11 +770,11 @@ Configure() {
 
 	echo "--------------"
 	if [[ ${HARDCORE_MODE_ENABLE} == "true" ]]; then
-		echo "The Difficulty Hard can't change Becase of Hardcore Mode."
+		echo "开启Hardcore模式后,难度选项 -困难- 已不可改变!"
 		DIFFICULTY_LEVEL=3
 	else
 		while true; do
-			echo "Please Enter the Defalut Server Game Difficulty Mode |Peaceful-0|Easy-1|Normal-2|Hard-3"
+			echo "服务器默认游戏难度 | 和平-0 | 简单-1 | 普通-2 | 困难-3"
 			read -p ">" DIFFICULTY_LEVEL
 			if [[ ${DIFFICULTY_LEVEL} == '0' ]] || [[ ${DIFFICULTY_LEVEL} == '1' ]] || [[ ${DIFFICULTY_LEVEL} == '2' ]] || [[ ${DIFFICULTY_LEVEL} == '3' ]]; then
 				break
@@ -788,24 +784,24 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter the Server's Max Num of Playing Players | Positive Integer 1-2147483647"
+		echo "请输入最大在线玩家数量 | 正数数字 1-2147483647 >"
 		read -p ">" MAX_PLAYERS
 		if checkStringClassContains 0-9 ${MAX_PLAYERS}; then
 			if [[ ${MAX_PLAYERS} -gt 0 ]]; then
 				if [[ ${MAX_PLAYERS} -le 2147483647 ]]; then
 					break
 				else
-					PrintBlue "Beyond Range..."
+					PrintBlue "超过范围啦..."
 				fi
 			else
-				PrintBlue "Invalid Number."
+				PrintBlue "不可为0或负数(把玩家都给ban了233)"
 			fi
 		fi
 	done
 
 	echo "--------------"
 	while true; do
-		echo "Allow PvP |y / n| "
+		echo "是否开启玩家PvP |y / n|"
 		read -p ">" PvpYoN
 		if [[ ${PvpYoN} == 'y' ]]; then
 			PVP_ENABLE="true"
@@ -818,7 +814,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Allow Players Fly with Server Plugins or MOD and More |y / n|"
+		echo "是否允许玩家在服务器装有插件等的情况下飞行 |y / n|"
 		read -p ">" FlightYoN
 		if [[ ${FlightYoN} == 'y' ]]; then
 			FLIGHT_ENABLE="true"
@@ -831,7 +827,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Allow Players Enter the Nether and the Nether will be valid |y / n|"
+		echo "是否允许进入下界 |y / n|"
 		read -p ">" AllowNetherYoN
 		if [[ ${AllowNetherYoN} == 'y' ]]; then
 			ALLOW_NETHER_ENABLE="true"
@@ -844,7 +840,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Enable Online Mode |y / n|"
+		echo "是否开启在线模式 |y / n|"
 		read -p ">" OnlineModeYoN
 		if [[ ${OnlineModeYoN} == 'y' ]]; then
 			ONLINE_MODE_ENABLE="true"
@@ -857,7 +853,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Enable Command_Block |y / n|"
+		echo "是否开启命令方块 |y / n|"
 		read -p ">" CommandBlockYoN
 		if [[ ${CommandBlockYoN} == 'y' ]]; then
 			COMMAND_BLOCK_ENABLE="true"
@@ -870,7 +866,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Enable Generating Monsters |y / n|"
+		echo "允许生成怪物 |y / n|"
 		read -p ">" SpawnMonstersYoN
 		if [[ ${SpawnMonstersYoN} == 'y' ]]; then
 			SPAWN_MONSTER_ENABLE="true"
@@ -883,7 +879,7 @@ Configure() {
 
 	echo "--------------"
 	while true; do
-		echo "Please Enter a String as the Path of the Starting Script Home,the Script will be Created in the Directory that the Path points | e.g. /root/"
+		echo "请输入您希望服务器启动脚本的生成目录 | 例如：/root/"
 		read -p ">" ShFDir
 		ShFDir=$(echo ${ShFDir} | awk ' {print $1} ') #始终使用服主输入的第一个路径
 		if ! mkdir -p ${ShFDir} >/dev/null 2>&1; then
@@ -896,14 +892,11 @@ Configure() {
 		fi
 	done
 
-	echo -n "Export Config [server.properties]..."
+	echo -n "导出配置 [server.properties]..."
 	ServersettingCreate
-	PrintGreen "done"
+	PrintGreen "完成"
 
-	echo -n "Creating Starting Script..."
-	if ! touch ${ShFDir}/start.sh >/dev/null 2>&1; then
-		_SUDO_PREFIX="sudo"
-	fi
+	echo -n "创建启动脚本..."
 
 	cat ${SCRIPT_HOME}/output.sh | sudo tee ${ShFDir}/start.sh >${SCRIPT_HOME}/start.sh
 	echo "SERVER_WORKING_DIR=${SERVER_WORKING_DIR}" | sudo tee -a ${ShFDir}/start.sh >>${SCRIPT_HOME}/start.sh
@@ -917,17 +910,17 @@ Configure() {
 	$_SUDO_PREFIX chmod +x ${SCRIPT_HOME}/start.sh
 	$_SUDO_PREFIX chown ${USER}: ${SCRIPT_HOME}/start.sh
 
-	PrintGreen "done"
-	echo "Created Starting Script in ${ShFDir} [ start.sh ]"
+	PrintGreen "完成"
+	echo "已经在 ${ShFDir} 中创建启动脚本 [ start.sh ]"
 
-	echo -n "Creating the Configure Script..."
+	echo -n "生成配置脚本..."
 	cat >Config.sh <<EOF
 ${JAVA_BINARY_PATH} -Xms${MemoryJvmXms}m -Xmx${MemoryJvmXmx}m -jar ./server.jar nogui
 exit
 EOF
-	PrintGreen "done"
+	PrintGreen "完成"
 
-	echo -n "Start to Configure use Script and Apply..."
+	echo -n "开始配置..."
 	screen -dmS ConfigTerm bash ./Config.sh
 
 	while ! [[ -f "logs/latest.log" ]]; do
@@ -944,12 +937,12 @@ EOF
 		fi
 
 		if ! ps -fe | grep server.jar | grep java | grep -v grep >/dev/null 2>&1; then
-			echo "Maybe There is an Error" >/tmp/McServer/Config_Java_Run_Error
+			echo "可能出现了一个错误" >/tmp/McServer/Config_Java_Run_Error
 			ScriptExitF /tmp/McServer/Config_Java_Run_Error
 		fi
 		sleep 1
 	done
-	PrintGreen "done"
+	PrintGreen "完成"
 }
 #################################################################
 
@@ -972,36 +965,36 @@ function NormalStart {
 	if ! [[ $(wc -w <<<${JAVA_INSTALL_VERSION} 2>&1) -gt 0 ]]; then
 		JAVA_INSTALL_VERSION=${JAVA_INSTALL_VERSION_GROUP[0]}
 	fi
-	echo "Java Version Redirects to:${JAVA_INSTALL_VERSION}"
-	echo "Start Running JavaInstaller..."
+	echo "Java版本定向到:${JAVA_INSTALL_VERSION}"
+	echo "拉起JavaInstaller..."
 	JavaInstaller
 	JavaGetBinaryPath
 	Configure
 }
 
 function JarStart {
-	echo "Check the Java Verion that the Jar will Use..."
+	echo "检测Jar所需的Java版本..."
 	checkPkgJavaVersion ./McServer/server.jar JAVA_INSTALL_VERSION 2>/tmp/McServer/check_JarVersion
 	if [[ $? != 0 ]]; then
-		echo "The File May not be a Jar." >>/tmp/McServer/check_JarVersion
+		echo "可能此文件不是Jar." >>/tmp/McServer/check_JarVersion
 		ScriptExitF /tmp/McServer/check_JarVersion
 	fi
-	echo -n "Java Version..."
+	echo -n "Java选择版本..."
 	PrintGreen ${JAVA_INSTALL_VERSION}
 
 	JavaInstaller
 
 	cd McServer
 
-	echo "Start ro Check Jar..."
+	echo "开始校验..."
 	JarRunTest
 	if [[ $? != 0 ]]; then
 		ScriptExitF /tmp/McServer/Jar_Run_Test_Error
 	fi
 	if [[ -f "/tmp/McServer/Jar_Run_Test_Var.sh" ]]; then
 		source /tmp/McServer/Jar_Run_Test_Var.sh
-		echo "Java Version Redirects to:${JAVA_INSTALL_VERSION}"
-		echo "Start Running JavaInstaller..."
+		echo "Java版本重定向到:${JAVA_INSTALL_VERSION}"
+		echo "拉起JavaInstaller..."
 		JavaInstaller
 	fi
 
@@ -1016,9 +1009,9 @@ Checker
 echo "--------------"
 if [[ -f McServer/server.jar ]]; then
 	if [[ -d McServer/logs ]]; then
-		echo "There is a Server in Directory McServer/,Please Delete Those Files(except server.jar) or quit to cd to Another Directory and Continue."
+		echo "在McServer已经有了一个服务器，请删除那些文件(不包括 server.jar) 或者 切换至其他目录继续安装"
 		while true; do
-			read -p "Delete(d);Quit(q) | " choose
+			read -p "删除(d);退出(q) | " choose
 			if [[ ${choose} = 'q' ]]; then
 				ScriptClose Normal
 			elif [[ ${choose} = 'd' ]]; then
@@ -1028,9 +1021,9 @@ if [[ -f McServer/server.jar ]]; then
 		done
 	fi
 
-	echo "There is a File called \"server.jar\" in McServer/"
+	echo "McServer目录中已存在 \"server.jar\" 文件"
 	while true; do
-		read -p "Delete & Continue(d);Quit(q);Continue to use the Jar to Install(c) | " choose
+		read -p "删除并继续(d);退出(q);继续安装这个 Jar 文件(c) | " choose
 
 		case ${choose} in
 		'd')
