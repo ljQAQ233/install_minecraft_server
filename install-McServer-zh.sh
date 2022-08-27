@@ -76,7 +76,7 @@ GetTime() {
 
 CheckerInstaller() {
 	echo -n "更新软件列表..."
-	#	sudo apt update >/tmp/McServer/Apt_Update 2>&1
+	sudo apt update >/tmp/McServer/Apt_Update 2>&1
 	if [[ $? == 0 ]]; then
 		PrintGreen "完成"
 	else
